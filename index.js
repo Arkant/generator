@@ -30,7 +30,7 @@ function check (item, array) {
     if (item instanceof Promise) {
       item.then(data => {
         array.push(data);
-        return data
+        return data;
       });
     } else if (typeof item === 'function') {
         array.push(item());
@@ -47,7 +47,6 @@ async function runner(iterat) {
   let array = [];
   let next = iterat.next();
   let { value, done } = next;
-  await value;
   let result = check(value, array);
 
   while (done === false) {
