@@ -26,37 +26,43 @@ function *gen() {
 
 const iterator = gen();
 
-function check (item, array) {
-    if (item instanceof Promise) {
-      item.then(data => {
-        array.push(data);
-        return data;
-      });
-    } else if (typeof item === 'function') {
-        array.push(item());
-        return item()
-    } else if (typeof item === 'undefined') {
-        return;
-    } else {
-      array.push(item);
-      return item
+function isPromise(value) {
+  return value instanceof Promise;
+}
+
+function isFunction(value) {
+  return typeof value === 'function';
+}
+
+function runner(iterator) {
+  const resultArray = [];
+
+  return new Promise(resolve => { 
+    function executer(iterat, yieldValue) {
+      const next = iterat.next(yieldValue);
+      let { value, done } = next;
+      
+      if (!done) {
+        if (isPromise(value)) {
+          return value.then(data => {
+          resultArray.push(data);
+          executer(iterat, data);
+        });
+      } else if (isFunction(value)) {
+          const data = value();
+          resultArray.push(data);
+          return executer(iterat, data);
+      } 
+        resultArray.push(value);
+        executer(iterat, value);
+      }
+
+    return resolve(resultArray);
     }
+
+    executer(iterator);
+  });
+
 }
 
-async function runner(iterat) {
-  let array = [];
-  let next = iterat.next();
-  let { value, done } = next;
-  let result = check(value, array);
-
-  while (done === false) {
-    await value;
-    next = iterat.next(result);
-    done = next.done;
-    value = await next.value;
-    result = check(value, array);
-  }
-  return array;
-}
-
-runner(iterator).then(data => console.log(data.pop() === '441,2,3,4' ? "Good Job" : "You are fail this task"))
+runner(gen()).then(data => console.log(data.pop() === '441,2,3,4' ? "Good Job" : "You are fail this task"))
